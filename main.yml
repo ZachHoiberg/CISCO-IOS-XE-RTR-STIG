@@ -1,0 +1,183 @@
+---
+- name: Cisco IOS-XE Switch RTR STIG Config
+  hosts: all
+  vars_files: secrets/secrets.yml
+  gather_facts: True
+  connection: network_cli
+  tasks:
+  
+    - name: Getting interface facts
+      ios_facts:
+        gather_subset: all
+        gather_network_resources: all   
+        
+#CISC-RT-000010 idempotent list of VLAN filters and ACLs
+
+
+#Not yet tested
+#    - name: CISC-RT-000020, CISC-RT-000030 CISC-RT-000040, CISC-RT-000050 - The switch must be configured to use encryption for routing protocol authentication. The switch must authenticate routing protocol messages with a NIST-validated FIPS 198-1 algorithm. These keys must only have a lifetime of 180 days.
+#      ios_config:
+#        lines:
+        
+    - name: Grabbing running config to speed up loops
+      ios_command:
+        commands: show running-config
+      register: running_config
+      
+#Applied manually to layer 3 ints     
+#    - name: CISC-RT-000060 - The switch must have all inactive layer 3 interfaces disabled
+
+    - name: CISC-RT-000070 - The switch must have all non-essential capabilities disabled
+      ios_config:
+        lines:
+        - no ip finger
+        - no ip http server
+        - no ip rcmd rsh-enable
+        - no ip rcmd rcp-enable
+        - no service config
+        - no service finger
+        - no service tcp-small-servers
+        - no service udp-small-servers
+        - no service pad
+
+#CNS server variables
+    - name: CISC-RT-000090 - The switch must not have any zero-touch deployment features enabled
+      ios_config:
+        lines:
+        - no cns config initial 
+        - no cns exec 
+        - no cns image 
+#        - no cns trusted-server config Y
+#        - no cns trusted-server image X
+
+#Covered by CISC-ND-001220
+#    - name: CISC-RT-000120 - The switch must be configured to protect against DoS attacks by using control plane protection
+
+#Applied manually per l3 interface
+#    - name: CISC-RT-000130 - The switch must restrict traffic destined to itself
+#      ios_config:
+#        lines:
+#        -
+#Applied manually per l3 interface
+#    - name: CISC-RT-000140 - The switch must drop all fragmented ICMP packets destined to itself
+#      ios_config:
+#        lines:
+#        - 
+
+    - name: CISC-RT-000150 - The switch must have gratuitous arp disabled on all external interfaces
+      ios_config:
+        lines:
+        - no ip gratuitous-arps
+        parents: "interface {{item.name}}"
+        running_config: "{{running_config.stdout[0]}}"
+      loop: "{{ansible_network_resources.l3_interfaces}}"
+      when: 'item.ipv4 is defined or item.ipv6 is defined'
+
+    - name: CISC-RT-000160 - The switch must be have IP directed broadcast disabled on all interfaces
+      ios_config:
+        lines:
+        - no ip directed-broadcast
+        parents: "interface {{item.name}}"
+        running_config: "{{running_config.stdout[0]}}"
+      loop: "{{ansible_network_resources.l3_interfaces}}"
+      when: 'item.ipv4 is defined or item.ipv6 is defined'
+
+    - name: CISC-RT-000170 - The switch must have ICMP unreachable messages disabled on all external interfaces
+      ios_config:
+        lines:
+        - no ip unreachables
+        parents: "interface {{item.name}}"
+        running_config: "{{running_config.stdout[0]}}"
+      loop: "{{ansible_network_resources.l3_interfaces}}" 
+      when: 'item.ipv4 is defined or item.ipv6 is defined'
+
+    - name: CISC-RT-000180 - The switch must have ICMP mask reply messages disabled on all external interfaces
+      ios_config:
+        lines:
+        - no ip mask-reply
+        parents: "interface {{item.name}}"
+        running_config: "{{running_config.stdout[0]}}"
+      loop: "{{ansible_network_resources.l3_interfaces}}"
+      when: 'item.ipv4 is defined or item.ipv6 is defined'
+
+    - name: CISC-RT-000180 - The switch must have ICMP mask reply messages disabled on all external interfaces
+      ios_config:
+        lines:
+        - no ip redirects
+        parents: "interface {{item.name}}"
+        running_config: "{{running_config.stdout[0]}}"
+      loop: "{{ansible_network_resources.l3_interfaces}}"      
+      when: 'item.ipv4 is defined or item.ipv6 is defined'
+      
+#Covered by all ACL deny any any log-input in IOS-NDM-STIG.yml
+#    - name: CISC-RT-000200, CISC-RT-000210, CISC-RT-000220  - The switch must log all dropped packets via an ACL, audit records that establish where events occurred and contain the source of the events.
+#      ios_config:
+#        lines:
+#        -
+
+#CISC-RT-000240, CISC-RT-000250, CISC-RT-000260, CISC-RT-000270, CISC-RT-000310, CISC-RT-000320, CISC-RT-000330, CISC-RT-000340, CISC-RT-000350, CISC-RT-000360, CISC-RT-000370, CISC-RT-000380, CISC-RT-000390, CISC-RT-000391, CISC-RT-000392, CISC-RT-000393, CISC-RT-000394, CISC-RT-000395, CISC-RT-000396, CISC-RT-000397, CISC-RT-000398
+
+
+#CISC-RT-000630, CISC-RT-000640, CISC-RT-000650, CISC-RT-000660, CISC-RT-000670, CISC-RT-000680, CISC-RT-000690, CISC-RT-000700, CISC-RT-000710, CISC-RT-000720, CISC-RT-000730, CISC-RT-000740, CISC-RT-000750, CISC-RT-000760, CISC-RT-000770
+
+
+#CISC-RT-000770
+
+
+
+#    - name: CISC-RT-000780 - The switch must enforce a QOS policy to limit the effects of DOS attacks
+#      ios_config:
+#        lines:
+#        -
+
+#    - name: CISC-RT-000790 - The multicast switch must be configured to disable Protocol Independeant Multicast on all interfaces that are not required to support multicast routing
+#      ios_config:
+#        lines:
+#        -
+
+#    - name: CISC-RT-000800 - The multicast switch must be configured to bind a PIM neighbor filter to PIM enabled interfaces
+#      ios_config:
+#        lines:
+#        -
+
+#    - name: CISC-RT-000810 - The multicast edge switch must be configured to establish boundaries for administratively scoped multicast traffic
+#      ios_config:
+#        lines:
+#        -
+
+#    - name: CISC-RT-000860, CISC-RT-000870 - The multicast designated switch (DR) must be configured to filter IGMP and MLD report messages to only allow hosts to join approved multicast groups from approved sources.
+#      ios_config:
+#        lines:
+#        -
+  
+#    - name: CISC-RT-000880 - The multicast DR must be configured to limit the number of mroute states from IGMP and MLD membership reports
+#      ios_config:
+#        lines:
+#        -
+
+#    - name: CISC-RT-000890 - The multicast DR must be configured to set the shortest-path tree threshold to infinity to minimalize source-group state within the multicast topology where Any Source Multicast is deployed
+#      ios_config:
+#        lines:
+#        -
+
+    - name: CISC-RT-000080 - The switch must not be configured to have any feature enabled that calls home to the vendor
+      ios_config:
+        lines:
+        - no call-home
+
+    - name: CISC-RT-000235 - The switch must be configured to have Cisco Express Forwarding enabled
+      ios_config:
+        lines:
+        - ip cef distributed
+        - ipv6 cef distributed
+
+    - name: CISC-RT-000236 - The switch must be configured to advertise a hop limit of at least 32 in Switch Advertisement messages for IPv6 stateless auto-configuration deployments
+      ios_config:
+        lines:
+        - ipv6 hop-limit 128
+
+#Implemented manually
+#    - name: CISC-RT-000237 - The switch must not be configured to use IPv6 Site Local Unicast addresses
+#      ios_config:
+#        lines:
+#  
